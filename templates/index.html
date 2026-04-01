@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero">
+    <h1>Welcome to Habit Tracking</h1>
+    <p class="subtitle">Build better habits, one day at a time.</p>
+    <p class="description">
+        This is a habit tracking web application that helps you stay consistent,
+        organized, and motivated. Track your daily habits, set priorities, and watch
+        your progress grow.
+    </p>
+    <a href="#features" class="btn">See What's Coming</a>
+</section>
+
+<section class="features" id="features">
+    <h2>Planned Features</h2>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h3>Track Daily Habits</h3>
+            <p>Log and check off habits every day to build consistency.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Categories</h3>
+            <p>Organize habits by Health, Fitness, Learning, and Wellness.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Progress Stats</h3>
+            <p>View streaks, completion rates, and weekly summaries.</p>
+        </div>
+        <div class="feature-card">
+            <h3>User Accounts</h3>
+            <p>Sign up and log in to save your habits and progress.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
