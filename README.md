@@ -86,6 +86,39 @@ pytest tests/
 
 ---
 
+## Branch Strategy
+
+We use two protected branches:
+
+| Branch | Purpose |
+|--------|---------|
+| `main` | Stable, production-ready code only |
+| `develop` | Active development and testing |
+
+**Rules (apply to both `main` and `develop`):**
+- No one can push code directly to `main` or `develop`
+- All changes must be made on a separate feature branch (e.g. `feature/add-login`)
+- A Pull Request must be opened to merge into `develop` or `main`
+- **2 team members must approve** the Pull Request before it can be merged
+
+**Workflow:**
+1. Create a feature branch from `develop`
+2. Make changes and push to your feature branch
+3. Open a Pull Request → `develop`
+4. Get 2 approvals → merge into `develop`
+5. Once stable → open a Pull Request → `main`
+
+---
+
+## Project Tracking
+
+We track tasks, progress, and assignments on our Trello board:
+[https://trello.com/b/qLoWOtQb/habit-tracker](https://trello.com/b/qLoWOtQb/habit-tracker)
+
+All team members should update the board when starting or completing a task.
+
+---
+
 ## Planned Features (Coming in Future Assignments)
 
 - User login / sign-up
