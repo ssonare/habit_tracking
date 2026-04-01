@@ -119,6 +119,20 @@ All team members should update the board when starting or completing a task.
 
 ---
 
+## CI/CD Pipeline
+
+We plan to set up a GitHub Actions pipeline that will automatically run on every push:
+
+| Step | Tool | Purpose |
+|------|------|---------|
+| Lint | `flake8` | Check Python code for errors and style issues |
+| Test | `pytest` | Run all automated tests |
+| Security Scan | `Trivy` | Check for known vulnerabilities |
+
+The pipeline will run automatically — no manual steps needed.
+
+---
+
 ## Planned Features (Coming in Future Assignments)
 
 - User login / sign-up
