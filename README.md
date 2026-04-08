@@ -1,6 +1,6 @@
 # Habit Tracking — Web App
 
-A habit tracking web application built with **Python Flask**.
+Habit Tracker is a Python Flask-based web application designed to help users build and maintain meaningful daily habits. Whether you're working on your fitness, mental wellness, or personal growth, the app lets you create and organize habits by category and priority, mark them as complete each day, and monitor your progress through streaks and statistics. With a clean, browser-based interface and a dedicated analytics page powered by pandas, staying consistent has never been more straightforward.
 
 ---
 
@@ -14,9 +14,10 @@ A habit tracking web application built with **Python Flask**.
 
 ## About This Project
 
-This app helps users build and maintain daily habits. This submission includes
-the **welcome/landing page** as the starting point. Full features will be added
-in future assignments.
+This Habit Tracking application was developed as part of a collaborative academic project by Group 9. The goal was to design and build a fully functional, Python-based web application that solves a real-world problem — helping people stay consistent with their daily habits and personal goals.
+The application is built using Flask as the web framework, giving users a clean and interactive browser-based experience. Habits can be created, categorized, prioritized, and tracked on a day-to-day basis. A dedicated statistics page powered by pandas provides meaningful insights such as completion rates, category breakdowns, and streak tracking — turning raw habit data into actionable progress reports.
+Behind the scenes, the app is structured around two core classes — Habit and HabitTracker — with data persisted through a local JSON file, ensuring nothing is lost between sessions. The project also includes a suite of automated pytest tests to ensure reliability across key features.
+This project was built by three team members — Sandhya Gottimukkala, Stuti Patel, and Samruddhi Sonare — who collaborated through weekly Zoom check-ins, a shared Trello board, and a structured deadline management strategy to bring the application to life.
 
 ---
 
