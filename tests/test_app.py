@@ -1,7 +1,6 @@
-import os
 import pytest
 import pandas as pd
-from app import app, HABITS_FILE
+from app import app
 
 
 @pytest.fixture
