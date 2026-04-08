@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1>My Habits</h1>
+        <a href="{{ url_for('add_habit') }}" class="btn btn-primary">+ Add Habit</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if habits %}
+        <table class="habits-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Habit Name</th>
+                    <th>Description</th>
+                    <th>Frequency</th>
+                    <th>Date Added</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for habit in habits %}
+                <tr>
+                    <td>{{ habit.id }}</td>
+                    <td>{{ habit.name }}</td>
+                    <td>{{ habit.description if habit.description else '—' }}</td>
+                    <td><span class="badge">{{ habit.frequency }}</span></td>
+                    <td>{{ habit.date_added }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty-state">
+            <p>No habits yet. Click <strong>+ Add Habit</strong> to get started!</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
