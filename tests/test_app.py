@@ -88,7 +88,9 @@ def test_add_habit_saves_to_csv(client, tmp_path, monkeypatch):
     assert df.iloc[0]['name'] == 'Read Books'
     assert df.iloc[0]['frequency'] == 'Daily'
 
+
 # --- Delete habit ---
+
 
 def test_delete_habit_success(client):
     """Adding then deleting a habit should remove it from the list."""
@@ -106,7 +108,7 @@ def test_delete_habit_success(client):
     response = client.get('/habits')
     assert b'Meditate' not in response.data
 
-    
+
 def test_delete_habit_not_found(client):
     """Deleting a non-existent habit ID should show an error."""
     response = client.post('/habits/delete/999', follow_redirects=True)

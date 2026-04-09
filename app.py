@@ -11,10 +11,12 @@ HABITS_FILE = 'habits.csv'
 
 
 def load_habits():
-    """Read habits from CSV. Returns an empty DataFrame if file doesn't exist."""
+    """Read habits from CSV. Returns empty DataFrame if file doesn't exist."""
     if os.path.exists(HABITS_FILE):
         return pd.read_csv(HABITS_FILE)
-    return pd.DataFrame(columns=['id', 'name', 'description', 'frequency', 'date_added'])
+    return pd.DataFrame(
+        columns=['id', 'name', 'description', 'frequency', 'date_added']
+    )
 
 
 def save_habits(df):
@@ -69,6 +71,7 @@ def add_habit():
         return redirect(url_for('habits'))
 
     return render_template('add_habit.html')
+
 
 @app.route('/habits/delete/<int:habit_id>', methods=['POST'])
 def delete_habit(habit_id):
