@@ -70,6 +70,22 @@ def add_habit():
 
     return render_template('add_habit.html')
 
+@app.route('/habits/delete/<int:habit_id>', methods=['POST'])
+def delete_habit(habit_id):
+    """Delete a habit by ID."""
+    df = load_habits()
+
+    if habit_id not in df['id'].values:
+        flash('Habit not found.', 'error')
+        return redirect(url_for('habits'))
+
+    habit_name = df.loc[df['id'] == habit_id, 'name'].values[0]
+    df = df[df['id'] != habit_id]
+    save_habits(df)
+
+    flash(f'Habit "{habit_name}" deleted successfully!', 'success')
+    return redirect(url_for('habits'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)

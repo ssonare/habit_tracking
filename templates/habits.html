@@ -24,6 +24,7 @@
                     <th>Description</th>
                     <th>Frequency</th>
                     <th>Date Added</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -34,6 +35,12 @@
                     <td>{{ habit.description if habit.description else '—' }}</td>
                     <td><span class="badge">{{ habit.frequency }}</span></td>
                     <td>{{ habit.date_added }}</td>
+                    <td>
+                        <form action="{{ url_for('delete_habit', habit_id=habit.id) }}" method="POST"
+                              onsubmit="return confirm('Delete this habit?');">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
