@@ -60,7 +60,7 @@ def test_register_missing_fields(client):
         'username': '',
         'email': '',
         'password': ''}, follow_redirects=True)
-    assert b'requried' in response.data
+    assert b'required' in response.data
 
 
 def test_register_short_password(client):
@@ -112,7 +112,7 @@ def test_login_invalid_password(client):
 
 
 def test_login_unknown_email(client):
-    response = client.get('/login', data={
+    response = client.post('/login', data={
         'email': 'nobody@example.com',
         'password': 'secret123'}, follow_redirects=True)
     assert b'Invalid email or password' in response.data
@@ -231,6 +231,7 @@ def test_add_habit_saves_to_csv(client, tmp_path, monkeypatch):
 
 def test_delete_habit_success(client):
     """Adding then deleting a habit should remove it from the list."""
+    register_user(client)
     client.post('/habits/add', data={
         'name': 'Meditate',
         'description': 'Meditate for 10 minutes',
@@ -248,6 +249,7 @@ def test_delete_habit_success(client):
 
 def test_delete_habit_not_found(client):
     """Deleting a non-existent habit ID should show an error."""
+    register_user(client)
     response = client.post('/habits/delete/999', follow_redirects=True)
     assert response.status_code == 200
     assert b'not found' in response.data
@@ -256,8 +258,11 @@ def test_delete_habit_not_found(client):
 def test_delete_habit_removes_from_csv(client, tmp_path, monkeypatch):
     """Deleted habit should no longer exist in the CSV."""
     test_csv = str(tmp_path / 'habits.csv')
+    test_user = str(tmp_path / 'users.json')
     monkeypatch.setattr('app.HABITS_FILE', test_csv)
+    monkeypatch.setattr('app.USERS_FILE', test_user)
 
+    register_user(client)
     client.post('/habits/add', data={
         'name': 'Journal',
         'description': 'Write daily journal',
