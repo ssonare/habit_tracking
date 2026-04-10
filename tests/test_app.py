@@ -1,5 +1,3 @@
-import json
-from http.client import responses
 import pytest
 import pandas as pd
 from app import app
@@ -9,19 +7,31 @@ from app import app
 def client(tmp_path, monkeypatch):
     """Set up a test Flask client with a temporary CSV file."""
     test_csv = str(tmp_path / 'habits.csv')
-    test_users = str(tmp_path / 'users.json')
+    test_user = str(tmp_path / 'users.json')
     monkeypatch.setattr('app.HABITS_FILE', test_csv)
-    monkeypatch.setattr('app.USERS_FILE', test_users)
+    monkeypatch.setattr('app.USERS_FILE', test_user)
     app.config['TESTING'] = True
     app.config['WTF_CSRF_ENABLED'] = False
     with app.test_client() as client:
         yield client
 
-def register_user(client, username='testuser', email='test@example.com', password='secret123'):
-    return client.post('/register', data={'username': username, 'email': email, 'password': password}, follow_redirects=True)
 
-def login_user(client, email='test@example.com', password='secret123'):
-    return client.post('/login', data={'email': email, 'password': password}, follow_redirects=True)
+def register_user(client,
+                  username='testuser',
+                  email='test@example.com',
+                  password='secret123'):
+    return client.post('/register', data={
+        'username': username,
+        'email': email,
+        'password': password}, follow_redirects=True)
+
+
+def login_user(client,
+               email='test@example.com',
+               password='secret123'):
+    return client.post('/login', data={
+        'email': email,
+        'password': password}, follow_redirects=True)
 
 
 # --- Home page ---
@@ -31,24 +41,35 @@ def test_home_page_loads(client):
     assert response.status_code == 200
     assert b'Habit Tracking' in response.data
 
+
 # --- Registration ---
 def test_register_page_loads(client):
     response = client.get('/register')
     assert response.status_code == 200
     assert b'Create Account' in response.data
 
+
 def test_register_valid_user(client):
     response = register_user(client)
     assert response.status_code == 200
     assert b'Welcome' in response.data
 
+
 def test_register_missing_fields(client):
-    response = client.post('/register', data={'username': '', 'email': '', 'password':''}, follow_redirects=True)
+    response = client.post('/register', data={
+        'username': '',
+        'email': '',
+        'password': ''}, follow_redirects=True)
     assert b'requried' in response.data
 
+
 def test_register_short_password(client):
-    response = client.post('/register', data={'username': 'alice', 'email': 'alice@example.com', 'password': '123'}, follow_redirects=True)
+    response = client.post('/register', data={
+        'username': 'alice',
+        'email': 'alice@example.com',
+        'password': '123'}, follow_redirects=True)
     assert b'6 characters' in response.data
+
 
 def test_register_duplicate_email(client):
     register_user(client)
@@ -56,8 +77,12 @@ def test_register_duplicate_email(client):
     response = register_user(client)
     assert b'already exists' in response.data
 
+
 def test_register_redirects_to_habits(client):
-    response = client.post('/register', data = {'username': 'bob', 'email': 'bob@example.com', 'password': 'password123'}, follow_redirects=False)
+    response = client.post('/register', data={
+        'username': 'bob',
+        'email': 'bob@example.com',
+        'password': 'password123'}, follow_redirects=False)
     assert response.status_code == 302
     assert '/habits' in response.headers['Location']
 
@@ -69,27 +94,36 @@ def test_login_page_loads(client):
     assert response.status_code == 200
     assert b'Log In' in response.data
 
+
 def test_login_valid_credentials(client):
     register_user(client)
     client.get('/logout')
     response = login_user(client)
     assert b'Welcome back' in response.data
 
+
 def test_login_invalid_password(client):
     register_user(client)
     client.get('/logout')
-    response = client.post('/login', data = {'email': 'test@example.com', 'password': 'wrongpassword'}, follow_redirects=True)
+    response = client.post('/login', data={
+        'email': 'test@example.com',
+        'password': 'wrongpassword'}, follow_redirects=True)
     assert b'Invalid email or password' in response.data
 
+
 def test_login_unknown_email(client):
-    response = client.get('/login', data={'email': 'nobody@example.com', 'password':'secret123'}, follow_redirects=True)
+    response = client.get('/login', data={
+        'email': 'nobody@example.com',
+        'password': 'secret123'}, follow_redirects=True)
     assert b'Invalid email or password' in response.data
+
 
 def test_login_redirects_to_habits(client):
     register_user(client)
     client.get('/logout')
     response = client.post('/login', data={
-        'email': 'test@example.com', 'password': 'secret123'
+        'email': 'test@example.com',
+        'password': 'secret123'
     }, follow_redirects=False)
     assert response.status_code == 302
     assert '/habits' in response.headers['Location']
@@ -107,6 +141,7 @@ def test_add_habit_page_requires_login(client):
     response = client.get('/habits/add', follow_redirects=False)
     assert response.status_code == 302
     assert '/login' in response.headers['Location']
+
 
 def test_add_habit_post_requires_login(client):
     response = client.post('/habits/add', data={
@@ -176,7 +211,7 @@ def test_add_habit_saves_to_csv(client, tmp_path, monkeypatch):
     test_csv = str(tmp_path / 'habits.csv')
     test_user = str(tmp_path / 'users.json')
     monkeypatch.setattr('app.HABITS_FILE', test_csv)
-    monkeypatch.setattr('app.USERS_FILE', test_users)
+    monkeypatch.setattr('app.USERS_FILE', test_user)
 
     register_user(client)
     client.post('/habits/add', data={

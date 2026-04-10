@@ -1,8 +1,10 @@
 import os
 import pandas as pd
 from datetime import date
+import json
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_login import (LoginManager, login_user, logout_user, login_required, current_user, UserMixin)
+from flask_login import (LoginManager, login_user, logout_user,
+                         login_required, current_user, UserMixin)
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -22,6 +24,7 @@ login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'error'
 
+
 class User(UserMixin):
     def __init__(self, user_id, username, email, password_hash):
         self.id = user_id
@@ -36,11 +39,13 @@ class User(UserMixin):
 # User persistence helpers
 # ---------------------------------------------------------------------------
 
+
 def load_users():
     if os.path.exists(USERS_FILE):
         with open(USERS_FILE, 'r') as f:
             return json.load(f)
     return {}
+
 
 def save_users(users):
     with open(USERS_FILE, 'w') as f:
@@ -53,6 +58,7 @@ def get_user_by_email(email):
         if data['email'].lower() == email.lower():
             return User(uid, data['username'], data['email'], data['password_hash'])
     return None
+
 
 def get_user_by_id(user_id):
     users = load_users()
@@ -89,9 +95,11 @@ def save_habits(df):
 # Routes
 # ---------------------------------------------------------------------------
 
+
 @app.route('/')
 def home():
     return render_template('index.html')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -131,6 +139,7 @@ def register():
 
     return render_template('register.html')
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -150,6 +159,7 @@ def login():
         flash('Invalid email or password.', 'error')
 
     return render_template('login.html')
+
 
 @app.route('/logout')
 @login_required
