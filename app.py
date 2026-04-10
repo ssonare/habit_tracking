@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from datetime import date
 import json
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_login import (LoginManager, login_user, logout_user,
                          login_required, current_user, UserMixin)
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -170,6 +170,7 @@ def logout():
 
 
 @app.route('/habits')
+@login_required
 def habits():
     """Display all habits."""
     df = load_habits()
@@ -178,6 +179,7 @@ def habits():
 
 
 @app.route('/habits/add', methods=['GET', 'POST'])
+@login_required
 def add_habit():
     """Show add-habit form (GET) and handle form submission (POST)."""
     if request.method == 'POST':
@@ -214,6 +216,7 @@ def add_habit():
 
 
 @app.route('/habits/delete/<int:habit_id>', methods=['POST'])
+@login_required
 def delete_habit(habit_id):
     """Delete a habit by ID."""
     df = load_habits()
