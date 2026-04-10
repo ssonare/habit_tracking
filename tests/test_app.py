@@ -189,3 +189,47 @@ def test_add_habit_saves_to_csv(client, tmp_path, monkeypatch):
     assert len(df) == 1
     assert df.iloc[0]['name'] == 'Read Books'
     assert df.iloc[0]['frequency'] == 'Daily'
+
+
+# --- Delete habit ---
+
+
+def test_delete_habit_success(client):
+    """Adding then deleting a habit should remove it from the list."""
+    client.post('/habits/add', data={
+        'name': 'Meditate',
+        'description': 'Meditate for 10 minutes',
+        'frequency': 'Daily'
+    })
+
+    response = client.post('/habits/delete/1', follow_redirects=True)
+    assert response.status_code == 200
+    assert b'deleted successfully' in response.data
+
+    # Check habit is gone from the habits list
+    response = client.get('/habits')
+    assert b'Meditate' not in response.data
+
+
+def test_delete_habit_not_found(client):
+    """Deleting a non-existent habit ID should show an error."""
+    response = client.post('/habits/delete/999', follow_redirects=True)
+    assert response.status_code == 200
+    assert b'not found' in response.data
+
+
+def test_delete_habit_removes_from_csv(client, tmp_path, monkeypatch):
+    """Deleted habit should no longer exist in the CSV."""
+    test_csv = str(tmp_path / 'habits.csv')
+    monkeypatch.setattr('app.HABITS_FILE', test_csv)
+
+    client.post('/habits/add', data={
+        'name': 'Journal',
+        'description': 'Write daily journal',
+        'frequency': 'Daily'
+    })
+
+    client.post('/habits/delete/1')
+
+    df = pd.read_csv(test_csv)
+    assert len(df) == 0
