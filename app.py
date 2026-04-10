@@ -2,12 +2,74 @@ import os
 import pandas as pd
 from datetime import date
 from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_login import (LoginManager, login_user, logout_user, login_required, current_user, UserMixin)
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = 'habit_tracker_secret'
 
 # Path to the CSV file that stores habits
 HABITS_FILE = 'habits.csv'
+USERS_FILE = 'users.json'
+
+# ---------------------------------------------------------------------------
+# Flask-Login setup
+# ---------------------------------------------------------------------------
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'error'
+
+class User(UserMixin):
+    def __init__(self, user_id, username, email, password_hash):
+        self.id = user_id
+        self.username = username
+        self.email = email
+        self.password_hash = password_hash
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+# ---------------------------------------------------------------------------
+# User persistence helpers
+# ---------------------------------------------------------------------------
+
+def load_users():
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_users(users):
+    with open(USERS_FILE, 'w') as f:
+        json.dump(users, f, indent=2)
+
+
+def get_user_by_email(email):
+    users = load_users()
+    for uid, data in users.items():
+        if data['email'].lower() == email.lower():
+            return User(uid, data['username'], data['email'], data['password_hash'])
+    return None
+
+def get_user_by_id(user_id):
+    users = load_users()
+    data = users.get(str(user_id))
+    if data:
+        return User(str(user_id), data['username'], data['email'], data['password_hash'])
+    return None
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return get_user_by_id(user_id)
+
+
+# ---------------------------------------------------------------------------
+# Habit persistence helpers
+# ---------------------------------------------------------------------------
 
 
 def load_habits():
@@ -21,10 +83,78 @@ def save_habits(df):
     """Write the habits DataFrame to CSV."""
     df.to_csv(HABITS_FILE, index=False)
 
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
 
 @app.route('/')
 def home():
     return render_template('index.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('habits'))
+
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+
+        if not username or not email or not password:
+            flash('All fields are required.', 'error')
+            return render_template('register.html')
+
+        if len(password) < 6:
+            flash('Password must be at least 6 characters.', 'error')
+            return render_template('register.html')
+
+        if get_user_by_email(email):
+            flash('An account with that email already exists.', 'error')
+            return render_template('register.html')
+
+        users = load_users()
+        new_id = str(max((int(k) for k in users.keys()), default=0) + 1)
+        users[new_id] = {
+            'username': username,
+            'email': email,
+            'password_hash': generate_password_hash(password),
+        }
+        save_users(users)
+
+        new_user = User(new_id, username, email, users[new_id]['password_hash'])
+        login_user(new_user)
+        flash(f'Welcome, {username}! Your account has been created.', 'success')
+        return redirect(url_for('habits'))
+
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('habits'))
+
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+
+        user = get_user_by_email(email)
+        if user and user.check_password(password):
+            login_user(user)
+            flash(f'Welcome back, {user.username}!', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('habits'))
+
+        flash('Invalid email or password.', 'error')
+
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'success')
+    return redirect(url_for('home'))
 
 
 @app.route('/habits')
