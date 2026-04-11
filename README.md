@@ -26,20 +26,32 @@ This project was built by three team members — Sandhya Gottimukkala, Stuti Pat
 ```
 Habit_Tracking/
 │
-├── app.py                  # Flask app — runs the server
+├── app.py                  # Flask app — routes, login, habit management
+├── conftest.py             # Pytest path configuration
 ├── requirements.txt        # Python dependencies
+├── habits.csv              # Habit data storage
+├── users.json              # User account storage
 ├── .gitignore
 │
 ├── templates/
 │   ├── base.html           # Shared layout (navbar, footer)
-│   └── index.html          # Welcome / landing page
+│   ├── index.html          # Welcome / landing page
+│   ├── login.html          # User login page
+│   ├── register.html       # User registration page
+│   ├── habits.html         # Habit list page
+│   └── add_habit.html      # Add new habit form
 │
 ├── static/
 │   └── css/
 │       └── style.css       # Page styling
 │
-└── tests/
-    └── test_app.py         # pytest tests
+├── tests/
+│   └── test_app.py         # pytest tests
+│
+└── .github/
+    └── workflows/
+        └── ci.yml          # GitHub Actions CI pipeline
+
 ```
 
 ---
@@ -84,6 +96,9 @@ pytest tests/
 | Flask | Web framework |
 | HTML / CSS | Frontend |
 | pytest | Testing |
+|pandas | Habit data processing and storage |
+| Flask-Login | User authentication |
+| flake8 | Code linting |
 
 ---
 
@@ -136,8 +151,7 @@ The pipeline will run automatically — no manual steps needed.
 
 ## Planned Features (Coming in Future Assignments)
 
-- User login / sign-up
-- Add, edit, delete habits
+- edit habits
 - Daily check-off and progress tracking
 - Categories: Health, Fitness, Learning, Wellness
 - Streaks and statistics dashboard
