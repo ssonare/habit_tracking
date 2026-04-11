@@ -3,3 +3,4 @@ flask-login
 pandas
 pytest
 flake8
+werkzeug
