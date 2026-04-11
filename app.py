@@ -1,3 +1,7 @@
+# Name: Samruddhi, stuti, sandhya
+# Date: 04/10/2026
+#Flask web application for Habit Tracking. Handles user registration, login, logout, and habit management (add, view, delete). Data is stored using CSV and JSON files.
+
 import os
 import pandas as pd
 from datetime import date
