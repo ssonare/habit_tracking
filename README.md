@@ -96,7 +96,7 @@ pytest tests/
 | Flask | Web framework |
 | HTML / CSS | Frontend |
 | pytest | Testing |
-|pandas | Habit data processing and storage |
+| pandas | Habit data processing and storage |
 | Flask-Login | User authentication |
 | flake8 | Code linting |
 
@@ -137,7 +137,7 @@ All team members should update the board when starting or completing a task.
 
 ## CI/CD Pipeline
 
-We plan to set up a GitHub Actions pipeline that will automatically run on every push:
+GitHub Actions pipeline that will automatically run on every push:
 
 | Step | Tool | Purpose |
 |------|------|---------|
