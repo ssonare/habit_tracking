@@ -1,3 +1,9 @@
+# Name: Samruddhi, stuti, sandhya
+# Date: 04/10/2026
+# Automated tests for the Habit Tracking Flask application.
+# Tests cover home page, habit list, add habit form,
+# form validation, and CSV data persistence.
+
 import os
 import pandas as pd
 from datetime import date

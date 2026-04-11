@@ -1,3 +1,7 @@
+# Name: Samruddhi, stuti, sandhya
+# Date: 04/10/2026
+# Automated tests for the Habit Tracking Flask application.
+
 import pytest
 import pandas as pd
 from app import app
