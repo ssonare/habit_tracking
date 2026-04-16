@@ -1,36 +1,49 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="hero">
-    <h1>Welcome to Habit Tracking</h1>
-    <p class="subtitle">Build better habits, one day at a time.</p>
-    <p class="description">
-        This is a habit tracking web application that helps you stay consistent,
-        organized, and motivated. Track your daily habits, set priorities, and watch
-        your progress grow.
-    </p>
-    <a href="#features" class="btn">See What's Coming</a>
-</section>
+<div class="welcome-wrapper">
 
-<section class="features" id="features">
-    <h2>Planned Features</h2>
-    <div class="feature-grid">
-        <div class="feature-card">
-            <h3>Track Daily Habits</h3>
-            <p>Log and check off habits every day to build consistency.</p>
-        </div>
-        <div class="feature-card">
-            <h3>Categories</h3>
-            <p>Organize habits by Health, Fitness, Learning, and Wellness.</p>
-        </div>
-        <div class="feature-card">
-            <h3>Progress Stats</h3>
-            <p>View streaks, completion rates, and weekly summaries.</p>
-        </div>
-        <div class="feature-card">
-            <h3>User Accounts</h3>
-            <p>Sign up and log in to save your habits and progress.</p>
+    <!-- Get Started Card -->
+    <div class="get-started-card">
+        <div class="get-started-icon">&#x1F680;</div>
+        <div class="get-started-text">
+            <h2>Get Started</h2>
+            <p>Add your habits, start working on them, and stay consistent and focused. Build the
+            routines that will transform your daily life, one small step at a time.</p>
         </div>
     </div>
-</section>
+
+    <!-- Why Choose Section -->
+    <section class="why-section">
+        <h2>Why Choose Habit Tracker?</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon feature-icon--red">&#127919;</div>
+                <h3>Stay Focused</h3>
+                <p>Minimize distractions with a clean, minimalist interface that keeps your attention on what matters most.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon feature-icon--blue">&#128200;</div>
+                <h3>Track Progress</h3>
+                <p>Watch your streaks grow and celebrate your wins. Visual progress tracking keeps you motivated every day.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon feature-icon--orange">&#128293;</div>
+                <h3>Build Streaks</h3>
+                <p>Keep your momentum going with streak counters that encourage consistency and long-term success.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Button -->
+    <div class="cta-section">
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('habits') }}" class="btn-cta">View My Habits &#10024;</a>
+        {% else %}
+        <a href="{{ url_for('login') }}" class="btn-cta">Start Building Better Habits Today &#10024;</a>
+        {% endif %}
+        <p class="cta-subtext">Sign in to get started &bull; Secure authentication &bull; Free to use</p>
+    </div>
+
+</div>
 {% endblock %}
