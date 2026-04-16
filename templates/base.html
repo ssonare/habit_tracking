@@ -15,6 +15,7 @@
         <div class="nav-links">
             {% if current_user.is_authenticated %}
             <a href="{{ url_for('habits') }}">My Habits</a>
+            <a href="{{ url_for('archived_habits') }}">Archived</a>
             <a href="{{ url_for('add_habit') }}">+ Add Habit</a>
             <a href="{{ url_for('logout') }}" class="btn-signin">Log Out ({{current_user.username}})</a>
             {% else %}

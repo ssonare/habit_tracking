@@ -3,8 +3,8 @@
 {% block content %}
 <div class="page-container">
     <div class="page-header">
-        <h1>My Habits</h1>
-        <a href="{{ url_for('add_habit') }}" class="btn btn-primary">+ Add Habit</a>
+        <h1>Archived Habits</h1>
+        <a href="{{ url_for('habits') }}" class="btn-primary">&#8592; Back to Active Habits</a>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -36,13 +36,13 @@
                     <td><span class="badge">{{ habit.frequency }}</span></td>
                     <td>{{ habit.date_added }}</td>
                     <td class="action-cell">
-                        <form action="{{ url_for('archive_habit', habit_id=habit.id) }}" method="POST"
+                        <form action="{{ url_for('unarchive_habit', habit_id=habit.id) }}" method="POST"
                               style="display:inline;">
-                            <button type="submit" class="btn-archive">Archive</button>
+                            <button type="submit" class="btn-restore">Restore</button>
                         </form>
                         <form action="{{ url_for('delete_habit', habit_id=habit.id) }}" method="POST"
                               style="display:inline;"
-                              onsubmit="return confirm('Delete this habit?');">
+                              onsubmit="return confirm('Permanently delete this habit?');">
                             <button type="submit" class="btn btn-danger">Delete</button>
                         </form>
                     </td>
@@ -52,7 +52,7 @@
         </table>
     {% else %}
         <div class="empty-state">
-            <p>No habits yet. Click <strong>+ Add Habit</strong> to get started!</p>
+            <p>No archived habits. Archive a habit from <a href="{{ url_for('habits') }}">My Habits</a> to see it here.</p>
         </div>
     {% endif %}
 </div>

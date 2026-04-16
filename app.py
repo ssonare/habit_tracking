@@ -87,9 +87,12 @@ def load_user(user_id):
 def load_habits():
     """Read habits from CSV. Returns empty DataFrame if file doesn't exist."""
     if os.path.exists(HABITS_FILE):
-        return pd.read_csv(HABITS_FILE)
+        df = pd.read_csv(HABITS_FILE)
+        if 'archived' not in df.columns:
+            df['archived'] = 0
+        return df
     return pd.DataFrame(
-        columns=['id', 'name', 'description', 'frequency', 'date_added']
+        columns=['id', 'name', 'description', 'frequency', 'date_added', 'archived']
     )
 
 
@@ -178,10 +181,57 @@ def logout():
 @app.route('/habits')
 @login_required
 def habits():
-    """Display all habits."""
+    """Display active (non-archived) habits."""
     df = load_habits()
-    habits_list = df.to_dict(orient='records')
+    active = df[df['archived'] != 1]
+    habits_list = active.to_dict(orient='records')
     return render_template('habits.html', habits=habits_list)
+
+
+@app.route('/habits/archived')
+@login_required
+def archived_habits():
+    """Display archived habits."""
+    df = load_habits()
+    archived = df[df['archived'] == 1]
+    habits_list = archived.to_dict(orient='records')
+    return render_template('archived.html', habits=habits_list)
+
+
+@app.route('/habits/archive/<int:habit_id>', methods=['POST'])
+@login_required
+def archive_habit(habit_id):
+    """Archive a habit by ID."""
+    df = load_habits()
+
+    if habit_id not in df['id'].values:
+        flash('Habit not found.', 'error')
+        return redirect(url_for('habits'))
+
+    habit_name = df.loc[df['id'] == habit_id, 'name'].values[0]
+    df.loc[df['id'] == habit_id, 'archived'] = 1
+    save_habits(df)
+
+    flash(f'Habit "{habit_name}" archived successfully!', 'success')
+    return redirect(url_for('habits'))
+
+
+@app.route('/habits/unarchive/<int:habit_id>', methods=['POST'])
+@login_required
+def unarchive_habit(habit_id):
+    """Restore an archived habit."""
+    df = load_habits()
+
+    if habit_id not in df['id'].values:
+        flash('Habit not found.', 'error')
+        return redirect(url_for('archived_habits'))
+
+    habit_name = df.loc[df['id'] == habit_id, 'name'].values[0]
+    df.loc[df['id'] == habit_id, 'archived'] = 0
+    save_habits(df)
+
+    flash(f'Habit "{habit_name}" restored to active habits!', 'success')
+    return redirect(url_for('archived_habits'))
 
 
 @app.route('/habits/add', methods=['GET', 'POST'])

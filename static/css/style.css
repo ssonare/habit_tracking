@@ -386,6 +386,43 @@ body {
     color: #ef4444;
 }
 
+/* Archive / Restore buttons */
+.btn-archive {
+    background-color: #fef3c7;
+    color: #92400e;
+    padding: 0.4rem 0.9rem;
+    border-radius: 8px;
+    border: 1px solid #fcd34d;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-archive:hover {
+    background-color: #fde68a;
+}
+
+.btn-restore {
+    background-color: #d1fae5;
+    color: #065f46;
+    padding: 0.4rem 0.9rem;
+    border-radius: 8px;
+    border: 1px solid #6ee7b7;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-restore:hover {
+    background-color: #a7f3d0;
+}
+
+.action-cell {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
 /* Footer */
 footer {
     text-align: center;
