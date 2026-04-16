@@ -277,3 +277,102 @@ def test_delete_habit_removes_from_csv(client, tmp_path, monkeypatch):
 
     df = pd.read_csv(test_csv)
     assert len(df) == 0
+
+
+# --- Edit habit ---
+
+
+def test_edit_habit_form_loads(client):
+    """Edit form should load pre-filled with habit details."""
+    register_user(client)
+    client.post('/habits/add', data={
+        'name': 'Exercise',
+        'description': 'Run 30 minutes',
+        'frequency': 'Daily'
+    })
+
+    response = client.get('/habits/edit/1')
+    assert response.status_code == 200
+    assert b'Exercise' in response.data
+    assert b'Run 30 minutes' in response.data
+
+
+def test_edit_habit_valid_submission(client):
+    """Valid edit should update the habit and redirect to /habits."""
+    register_user(client)
+    client.post('/habits/add', data={
+        'name': 'Exercise',
+        'description': 'Run 30 minutes',
+        'frequency': 'Daily'
+    })
+
+    response = client.post('/habits/edit/1', data={
+        'name': 'Yoga',
+        'description': 'Do yoga for 20 minutes',
+        'frequency': 'Daily'
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'updated successfully' in response.data
+    assert b'Yoga' in response.data
+
+
+def test_edit_habit_missing_name(client):
+    """Submitting edit without a name should show a validation error."""
+    register_user(client)
+    client.post('/habits/add', data={
+        'name': 'Exercise',
+        'description': 'Run 30 minutes',
+        'frequency': 'Daily'
+    })
+
+    response = client.post('/habits/edit/1', data={
+        'name': '',
+        'description': 'Run 30 minutes',
+        'frequency': 'Daily'
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'required' in response.data
+
+
+def test_edit_habit_not_found(client):
+    """Editing a non-existent habit ID should show an error."""
+    register_user(client)
+    response = client.post('/habits/edit/999', data={
+        'name': 'Ghost',
+        'description': '',
+        'frequency': 'Daily'
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'not found' in response.data
+
+
+def test_edit_habit_requires_login(client):
+    """Edit route should redirect to login if not authenticated."""
+    response = client.get('/habits/edit/1', follow_redirects=False)
+    assert response.status_code == 302
+    assert '/login' in response.headers['Location']
+
+
+def test_edit_habit_saves_to_csv(client, tmp_path, monkeypatch):
+    """Updated habit should be persisted correctly in the CSV."""
+    test_csv = str(tmp_path / 'habits.csv')
+    test_user = str(tmp_path / 'users.json')
+    monkeypatch.setattr('app.HABITS_FILE', test_csv)
+    monkeypatch.setattr('app.USERS_FILE', test_user)
+
+    register_user(client)
+    client.post('/habits/add', data={
+        'name': 'Exercise',
+        'description': 'Run 30 minutes',
+        'frequency': 'Daily'
+    })
+
+    client.post('/habits/edit/1', data={
+        'name': 'Yoga',
+        'description': 'Do yoga',
+        'frequency': 'Weekly'
+    })
+
+    df = pd.read_csv(test_csv)
+    assert df.iloc[0]['name'] == 'Yoga'
+    assert df.iloc[0]['frequency'] == 'Weekly'

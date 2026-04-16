@@ -62,7 +62,8 @@ def get_user_by_email(email):
     users = load_users()
     for uid, data in users.items():
         if data['email'].lower() == email.lower():
-            return User(uid, data['username'], data['email'], data['password_hash'])
+            return User(uid, data['username'], data['email'],
+                        data['password_hash'])
     return None
 
 
@@ -70,7 +71,8 @@ def get_user_by_id(user_id):
     users = load_users()
     data = users.get(str(user_id))
     if data:
-        return User(str(user_id), data['username'], data['email'], data['password_hash'])
+        return User(str(user_id), data['username'], data['email'],
+                    data['password_hash'])
     return None
 
 
@@ -92,7 +94,8 @@ def load_habits():
             df['archived'] = 0
         return df
     return pd.DataFrame(
-        columns=['id', 'name', 'description', 'frequency', 'date_added', 'archived']
+        columns=['id', 'name', 'description', 'frequency', 'date_added',
+                 'archived']
     )
 
 
@@ -141,9 +144,13 @@ def register():
         }
         save_users(users)
 
-        new_user = User(new_id, username, email, users[new_id]['password_hash'])
+        new_user = User(
+            new_id, username, email, users[new_id]['password_hash']
+        )
         login_user(new_user)
-        flash(f'Welcome, {username}! Your account has been created.', 'success')
+        flash(
+            f'Welcome, {username}! Your account has been created.', 'success'
+        )
         return redirect(url_for('habits'))
 
     return render_template('register.html')
@@ -287,6 +294,38 @@ def delete_habit(habit_id):
 
     flash(f'Habit "{habit_name}" deleted successfully!', 'success')
     return redirect(url_for('habits'))
+
+
+@app.route('/habits/edit/<int:habit_id>', methods=['GET', 'POST'])
+@login_required
+def edit_habit(habit_id):
+    """Show edit form (GET) and handle form submission (POST)."""
+    df = load_habits()
+
+    if habit_id not in df['id'].values:
+        flash('Habit not found.', 'error')
+        return redirect(url_for('habits'))
+
+    habit = df.loc[df['id'] == habit_id].iloc[0].to_dict()
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+        frequency = request.form.get('frequency', '').strip()
+
+        if not name or not frequency:
+            flash('Habit name and frequency are required.', 'error')
+            return redirect(url_for('edit_habit', habit_id=habit_id))
+
+        df.loc[df['id'] == habit_id, 'name'] = name
+        df.loc[df['id'] == habit_id, 'description'] = description
+        df.loc[df['id'] == habit_id, 'frequency'] = frequency
+        save_habits(df)
+
+        flash(f'Habit "{name}" updated successfully!', 'success')
+        return redirect(url_for('habits'))
+
+    return render_template('edit_habit.html', habit=habit)
 
 
 if __name__ == '__main__':
