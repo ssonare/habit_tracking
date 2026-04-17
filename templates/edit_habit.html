@@ -39,6 +39,15 @@
                 </select>
             </div>
 
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select id="category" name="category">
+                    {% for cat in ['Fitness', 'Health', 'Finance', 'Chores', 'Learning', 'Social', 'Other', 'Uncategorized'] %}
+                    <option value="{{ cat }}" {% if habit.category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Update Habit</button>
                 <a href="{{ url_for('habits') }}" class="btn btn-secondary">Cancel</a>
