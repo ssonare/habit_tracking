@@ -102,9 +102,9 @@ def load_habits():
 
         today = date.today().strftime('%Y-%m-%d')
         expired_mask = (
-        (df['status'] == 'paused') &
-        (df['pause_until'].notna()) &
-        (df['pause_until'].astype(str)<today)
+            (df['status'] == 'paused') &
+            (df['pause_until'].notna()) &
+            (df['pause_until'].astype(str) < today)
         )
         if expired_mask.any():
             df.loc[expired_mask, 'status'] = 'active'
@@ -343,13 +343,16 @@ def edit_habit(habit_id):
         df.loc[df['id'] == habit_id, 'name'] = name
         df.loc[df['id'] == habit_id, 'description'] = description
         df.loc[df['id'] == habit_id, 'frequency'] = frequency
-        df.loc[df['id'] == habit_id, 'category'] = category if category else 'Uncategorized'
+        df.loc[df['id'] == habit_id, 'category'] = (
+            category if category else 'Uncategorized'
+        )
         save_habits(df)
 
         flash(f'Habit "{name}" updated successfully!', 'success')
         return redirect(url_for('habits'))
 
     return render_template('edit_habit.html', habit=habit)
+
 
 @app.route('/habits/pause/<int:habit_id>', methods=['POST'])
 @login_required
@@ -409,13 +412,17 @@ def habit_stats():
 
     total = len(df)
     archived_count = int((df['archived'] == 1).sum())
-    active_count = int(((df['archived'] != 1) & (df['status'] == 'active')).sum())
+    active_count = int(
+        ((df['archived'] != 1) & (df['status'] == 'active')).sum()
+    )
     completed_count = int((df['status'] == 'completed').sum())
     paused_count = int((df['status'] == 'paused').sum())
 
     non_archived = df[df['archived'] != 1].copy()
     if not non_archived.empty:
-        cat_counts = non_archived.groupby('category').size().reset_index(name='count')
+        cat_counts = (
+            non_archived.groupby('category').size().reset_index(name='count')
+        )
         max_count = int(cat_counts['count'].max())
         categories = [
             {
@@ -435,7 +442,9 @@ def habit_stats():
         df['date_added'] = pd.to_datetime(df['date_added'])
         most_recent_row = df.loc[df['date_added'].idxmax()]
         oldest_row = df.loc[df['date_added'].idxmin()]
-        journey_days = int((most_recent_row['date_added'] - oldest_row['date_added']).days)
+        journey_days = int(
+            (most_recent_row['date_added'] - oldest_row['date_added']).days
+        )
         most_recent = {
             'name': most_recent_row['name'],
             'category': most_recent_row.get('category', 'Uncategorized'),
@@ -449,7 +458,9 @@ def habit_stats():
     except Exception:
         pass
 
-    total_categories = int(df['category'].nunique()) if 'category' in df.columns else 0
+    total_categories = (
+        int(df['category'].nunique()) if 'category' in df.columns else 0
+    )
 
     stats = {
         'total': total,
@@ -461,9 +472,15 @@ def habit_stats():
         'most_recent': most_recent,
         'oldest': oldest,
         'journey_days': journey_days,
-        'active_rate': round(active_count / total * 100, 1) if total > 0 else 0,
-        'completed_rate': round(completed_count / total * 100, 1) if total > 0 else 0,
-        'paused_rate': round(paused_count / total * 100, 1) if total > 0 else 0,
+        'active_rate': (
+            round(active_count / total * 100, 1) if total > 0 else 0
+        ),
+        'completed_rate': (
+            round(completed_count / total * 100, 1) if total > 0 else 0
+        ),
+        'paused_rate': (
+            round(paused_count / total * 100, 1) if total > 0 else 0
+        ),
         'total_categories': total_categories
     }
 
