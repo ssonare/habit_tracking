@@ -92,10 +92,14 @@ def load_habits():
         df = pd.read_csv(HABITS_FILE)
         if 'archived' not in df.columns:
             df['archived'] = 0
+        if 'category' not in df.columns:
+            df['category'] = 'Uncategorized'
+        if 'status' not in df.columns:
+            df['status'] = 'active'
         return df
     return pd.DataFrame(
         columns=['id', 'name', 'description', 'frequency', 'date_added',
-                 'archived']
+                 'archived', 'category', 'status']
     )
 
 
@@ -249,6 +253,7 @@ def add_habit():
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         frequency = request.form.get('frequency', '').strip()
+        category = request.form.get('category', 'Uncategorized').strip()
 
         # Basic validation
         if not name or not frequency:
@@ -265,7 +270,9 @@ def add_habit():
             'name': name,
             'description': description,
             'frequency': frequency,
-            'date_added': date.today().strftime('%Y-%m-%d')
+            'date_added': date.today().strftime('%Y-%m-%d'),
+            'category': category if category else 'Uncategorized',
+            'status': 'active'
         }
 
         # Append the new habit and persist
@@ -312,6 +319,7 @@ def edit_habit(habit_id):
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         frequency = request.form.get('frequency', '').strip()
+        category = request.form.get('category', 'Uncategorized').strip()
 
         if not name or not frequency:
             flash('Habit name and frequency are required.', 'error')
@@ -320,12 +328,91 @@ def edit_habit(habit_id):
         df.loc[df['id'] == habit_id, 'name'] = name
         df.loc[df['id'] == habit_id, 'description'] = description
         df.loc[df['id'] == habit_id, 'frequency'] = frequency
+        df.loc[df['id'] == habit_id, 'category'] = category if category else 'Uncategorized'
         save_habits(df)
 
         flash(f'Habit "{name}" updated successfully!', 'success')
         return redirect(url_for('habits'))
 
     return render_template('edit_habit.html', habit=habit)
+
+
+@app.route('/habits/stats')
+@login_required
+def habit_stats():
+    """Display habit statistics dashboard."""
+    df = load_habits()
+
+    if df.empty:
+        stats = {
+            'total': 0, 'active': 0, 'completed': 0, 'paused': 0,
+            'archived': 0, 'categories': [], 'most_recent': None,
+            'oldest': None, 'journey_days': 0, 'active_rate': 0,
+            'completed_rate': 0, 'paused_rate': 0, 'total_categories': 0
+        }
+        return render_template('stats.html', stats=stats)
+
+    total = len(df)
+    archived_count = int((df['archived'] == 1).sum())
+    active_count = int(((df['archived'] != 1) & (df['status'] == 'active')).sum())
+    completed_count = int((df['status'] == 'completed').sum())
+    paused_count = int((df['status'] == 'paused').sum())
+
+    non_archived = df[df['archived'] != 1].copy()
+    if not non_archived.empty:
+        cat_counts = non_archived.groupby('category').size().reset_index(name='count')
+        max_count = int(cat_counts['count'].max())
+        categories = [
+            {
+                'name': row['category'],
+                'count': int(row['count']),
+                'pct': round(row['count'] / max_count * 100)
+            }
+            for _, row in cat_counts.iterrows()
+        ]
+    else:
+        categories = []
+
+    most_recent = None
+    oldest = None
+    journey_days = 0
+    try:
+        df['date_added'] = pd.to_datetime(df['date_added'])
+        most_recent_row = df.loc[df['date_added'].idxmax()]
+        oldest_row = df.loc[df['date_added'].idxmin()]
+        journey_days = int((most_recent_row['date_added'] - oldest_row['date_added']).days)
+        most_recent = {
+            'name': most_recent_row['name'],
+            'category': most_recent_row.get('category', 'Uncategorized'),
+            'date': most_recent_row['date_added'].strftime('%B %d, %Y')
+        }
+        oldest = {
+            'name': oldest_row['name'],
+            'category': oldest_row.get('category', 'Uncategorized'),
+            'date': oldest_row['date_added'].strftime('%B %d, %Y')
+        }
+    except Exception:
+        pass
+
+    total_categories = int(df['category'].nunique()) if 'category' in df.columns else 0
+
+    stats = {
+        'total': total,
+        'active': active_count,
+        'completed': completed_count,
+        'paused': paused_count,
+        'archived': archived_count,
+        'categories': categories,
+        'most_recent': most_recent,
+        'oldest': oldest,
+        'journey_days': journey_days,
+        'active_rate': round(active_count / total * 100, 1) if total > 0 else 0,
+        'completed_rate': round(completed_count / total * 100, 1) if total > 0 else 0,
+        'paused_rate': round(paused_count / total * 100, 1) if total > 0 else 0,
+        'total_categories': total_categories
+    }
+
+    return render_template('stats.html', stats=stats)
 
 
 if __name__ == '__main__':

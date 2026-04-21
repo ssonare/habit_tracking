@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="stats-container">
+    <div class="stats-header">
+        <div>
+            <h1>Habit Statistics</h1>
+            <p class="stats-subtitle">Overview of your habit tracking behavior</p>
+        </div>
+        <a href="{{ url_for('habits') }}" class="btn btn-primary">Back to Tracker</a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-card-body">
+                <div>
+                    <p class="stat-label">Total Habits</p>
+                    <p class="stat-value stat-purple">{{ stats.total }}</p>
+                </div>
+                <div class="stat-icon stat-icon--purple">📋</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-body">
+                <div>
+                    <p class="stat-label">Active Habits</p>
+                    <p class="stat-value stat-green">{{ stats.active }}</p>
+                </div>
+                <div class="stat-icon stat-icon--green">✅</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-body">
+                <div>
+                    <p class="stat-label">Completed</p>
+                    <p class="stat-value stat-blue">{{ stats.completed }}</p>
+                </div>
+                <div class="stat-icon stat-icon--blue">✨</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-body">
+                <div>
+                    <p class="stat-label">Paused Habits</p>
+                    <p class="stat-value stat-yellow">{{ stats.paused }}</p>
+                </div>
+                <div class="stat-icon stat-icon--yellow">⏸</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-body">
+                <div>
+                    <p class="stat-label">Archived Habits</p>
+                    <p class="stat-value stat-gray">{{ stats.archived }}</p>
+                </div>
+                <div class="stat-icon stat-icon--gray">🗃</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Middle Row -->
+    <div class="stats-mid-row">
+        <!-- Habits by Category -->
+        <div class="stats-panel">
+            <h2 class="panel-title">Habits by Category</h2>
+            {% if stats.categories %}
+                {% for cat in stats.categories %}
+                <div class="category-row">
+                    <div class="category-meta">
+                        <span class="category-name">{{ cat.name }}</span>
+                        <span class="category-count">{{ cat.count }} habit{{ 's' if cat.count != 1 }}</span>
+                    </div>
+                    <div class="category-bar-track">
+                        <div class="category-bar-fill" style="width: {{ cat.pct }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="empty-text">No categories yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Habit Timeline -->
+        <div class="stats-panel">
+            <h2 class="panel-title">Habit Timeline</h2>
+            {% if stats.most_recent %}
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-line timeline-line--green"></div>
+                    <div class="timeline-dot timeline-dot--green">+</div>
+                    <div class="timeline-content">
+                        <p class="timeline-meta-label">Most Recent Habit</p>
+                        <p class="timeline-habit-name">{{ stats.most_recent.name }}</p>
+                        <span class="category-pill">{{ stats.most_recent.category }}</span>
+                        <p class="timeline-date">Created {{ stats.most_recent.date }}</p>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-line timeline-line--blue"></div>
+                    <div class="timeline-dot timeline-dot--blue">🕐</div>
+                    <div class="timeline-content">
+                        <p class="timeline-meta-label">Oldest Habit</p>
+                        <p class="timeline-habit-name">{{ stats.oldest.name }}</p>
+                        <span class="category-pill">{{ stats.oldest.category }}</span>
+                        <p class="timeline-date">Created {{ stats.oldest.date }}</p>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+                <p class="empty-text">No habits recorded yet.</p>
+            {% endif %}
+
+            <div class="journey-box">
+                <span class="journey-icon">📈</span>
+                <div>
+                    <p class="journey-label">Habit Journey</p>
+                    <p class="journey-days"><strong>{{ stats.journey_days }} day{{ 's' if stats.journey_days != 1 }}</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Insights -->
+    <div class="stats-panel insights-panel">
+        <h2 class="panel-title">Quick Insights</h2>
+        <div class="insights-grid">
+            <div class="insight-item">
+                <span class="insight-icon insight-icon--purple">✔</span>
+                <div>
+                    <p class="insight-label">Active Rate</p>
+                    <p class="insight-value">{{ stats.active_rate }}%</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <span class="insight-icon insight-icon--blue">✨</span>
+                <div>
+                    <p class="insight-label">Completed Rate</p>
+                    <p class="insight-value">{{ stats.completed_rate }}%</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <span class="insight-icon insight-icon--yellow">⏸</span>
+                <div>
+                    <p class="insight-label">Paused Rate</p>
+                    <p class="insight-value">{{ stats.paused_rate }}%</p>
+                </div>
+            </div>
+            <div class="insight-item">
+                <span class="insight-icon insight-icon--gray">🏷</span>
+                <div>
+                    <p class="insight-label">Total Categories</p>
+                    <p class="insight-value">{{ stats.total_categories }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
