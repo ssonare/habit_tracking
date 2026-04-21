@@ -96,10 +96,25 @@ def load_habits():
             df['category'] = 'Uncategorized'
         if 'status' not in df.columns:
             df['status'] = 'active'
+        if 'pause_until' not in df.columns:
+            df['pause_until'] = None
+        df['pause_until'] = df['pause_until'].astype(object)
+
+        today = date.today().strftime('%Y-%m-%d')
+        expired_mask = (
+        (df['status'] == 'paused') &
+        (df['pause_until'].notna()) &
+        (df['pause_until'].astype(str)<today)
+        )
+        if expired_mask.any():
+            df.loc[expired_mask, 'status'] = 'active'
+            df.loc[expired_mask, 'pause_until'] = None
+            save_habits(df)
+
         return df
     return pd.DataFrame(
         columns=['id', 'name', 'description', 'frequency', 'date_added',
-                 'archived', 'category', 'status']
+                 'archived', 'category', 'status', 'pause_until']
     )
 
 
@@ -335,6 +350,46 @@ def edit_habit(habit_id):
         return redirect(url_for('habits'))
 
     return render_template('edit_habit.html', habit=habit)
+
+@app.route('/habits/pause/<int:habit_id>', methods=['POST'])
+@login_required
+def pause_habit(habit_id):
+    """Pause a habit until a user-defined date."""
+    df = load_habits()
+
+    if habit_id not in df['id'].values:
+        flash('Habit not found.', 'error')
+        return redirect(url_for('habits'))
+
+    pause_until = request.form.get('pause_until', '').strip()
+
+    if not pause_until:
+        flash('Please select resume date.', 'error')
+        return redirect(url_for('habits'))
+
+    today = date.today().strftime('%Y-%m-%d')
+    if pause_until <= today:
+        flash('Resume date must be in the future.', 'error')
+        return redirect(url_for('habits'))
+
+
+@app.route('/habits/resume/<int:habit_id>', methods=['POST'])
+@login_required
+def resume_habit(habit_id):
+    """Manually resume a paused habit before its pause_until date."""
+    df = load_habits()
+
+    if habit_id not in df['id'].values:
+        flash('Habit not found.', 'error')
+        return redirect(url_for('habits'))
+
+    habit_name = df.loc[df['id'] == habit_id, 'name'].values[0]
+    df.loc[df['id'] == habit_id, 'status'] = 'active'
+    df.loc[df['id'] == habit_id, 'pause_until'] = None
+    save_habits(df)
+
+    flash(f'Habit "{habit_name}" resumed successfully!', 'success')
+    return redirect(url_for('habits'))
 
 
 @app.route('/habits/stats')

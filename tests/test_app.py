@@ -376,3 +376,194 @@ def test_edit_habit_saves_to_csv(client, tmp_path, monkeypatch):
     df = pd.read_csv(test_csv)
     assert df.iloc[0]['name'] == 'Yoga'
     assert df.iloc[0]['frequency'] == 'Weekly'
+
+
+# --- Pause habit ---
+
+def test_pause_habit_success(client):
+    """Pausing a habit should set its status to paused with a future date."""
+    register_user(client)
+    client.post('/habits/add', data={
+        'name': 'Exercise',
+        'description': 'Run daily',
+        'frequency': 'Daily'
+    })
+
+    from datetime import date, timedelta
+    future_date = (date.today() + timedelta(days=7)).strftime('%Y-%m-%d')
+    response = client.post('/habits/pause/1', data={
+        'pause_until': future_date
+    }, follow_redirects=True)
+
+    assert response.status_code == 200
+    assert b'paused until' in response.data
+
+
+def test_pause_habit_missing_date(client):
+    """Pausing without a resume date should show a validation error."""
+    register_user(client)
+    client.post('/habits/add', data={
+        'name': 'Exercise',
+        'description': 'Run daily',
+        'frequency': 'Daily'
+    })
+
+    response = client.post('/habits/pause/1', data={
+        'pause_until': ''
+    }, follow_redirects=True)
+
+    assert response.status_code == 200
+    assert b'resume date' in response.data
+
+
+def test_pause_habit_past_date(client):
+    """Pausing with a past or today date should show a validation error."""
+    register_user(client)
+    client.post('/habits/add', data={
+        'name': 'Exercise',
+        'description': 'Run daily',
+        'frequency': 'Daily'
+    })
+
+    from datetime import date
+    today = date.today().strftime('%Y-%m-%d')
+    response = client.post('/habits/pause/1', data={
+        'pause_until': today
+    }, follow_redirects=True)
+
+    assert response.status_code == 200
+    assert b'future' in response.data
+
+
+def test_pause_habit_not_found(client):
+    """Pausing a non-existent habit should show an error."""
+    register_user(client)
+
+    from datetime import date, timedelta
+    future_date = (date.today() + timedelta(days=5)).strftime('%Y-%m-%d')
+    response = client.post('/habits/pause/999', data={
+        'pause_until': future_date
+    }, follow_redirects=True)
+
+    assert response.status_code == 200
+    assert b'not found' in response.data
+
+
+def test_pause_habit_saves_to_csv(client, tmp_path, monkeypatch):
+    """Paused status and pause_until date should be persisted in the CSV."""
+    test_csv = str(tmp_path / 'habits.csv')
+    test_user = str(tmp_path / 'users.json')
+    monkeypatch.setattr('app.HABITS_FILE', test_csv)
+    monkeypatch.setattr('app.USERS_FILE', test_user)
+
+    register_user(client)
+    client.post('/habits/add', data={
+        'name': 'Meditate',
+        'description': '10 minutes',
+        'frequency': 'Daily'
+    })
+
+    from datetime import date, timedelta
+    future_date = (date.today() + timedelta(days=10)).strftime('%Y-%m-%d')
+    client.post('/habits/pause/1', data={'pause_until': future_date})
+
+    df = pd.read_csv(test_csv)
+    assert df.iloc[0]['status'] == 'paused'
+    assert df.iloc[0]['pause_until'] == future_date
+
+
+def test_pause_habit_requires_login(client):
+    """Pause route should redirect to login if not authenticated."""
+    response = client.post('/habits/pause/1', data={
+        'pause_until': '2099-12-31'
+    }, follow_redirects=False)
+    assert response.status_code == 302
+    assert '/login' in response.headers['Location']
+
+
+# --- Resume habit ---
+
+def test_resume_habit_success(client):
+    """Resuming a paused habit should set its status back to active."""
+    register_user(client)
+    client.post('/habits/add', data={
+        'name': 'Exercise',
+        'description': 'Run daily',
+        'frequency': 'Daily'
+    })
+
+    from datetime import date, timedelta
+    future_date = (date.today() + timedelta(days=7)).strftime('%Y-%m-%d')
+    client.post('/habits/pause/1', data={'pause_until': future_date})
+
+    response = client.post('/habits/resume/1', follow_redirects=True)
+    assert response.status_code == 200
+    assert b'resumed successfully' in response.data
+
+
+def test_resume_habit_not_found(client):
+    """Resuming a non-existent habit should show an error."""
+    register_user(client)
+    response = client.post('/habits/resume/999', follow_redirects=True)
+    assert response.status_code == 200
+    assert b'not found' in response.data
+
+
+def test_resume_habit_clears_pause_until(client, tmp_path, monkeypatch):
+    """Resuming should clear the pause_until date in the CSV."""
+    test_csv = str(tmp_path / 'habits.csv')
+    test_user = str(tmp_path / 'users.json')
+    monkeypatch.setattr('app.HABITS_FILE', test_csv)
+    monkeypatch.setattr('app.USERS_FILE', test_user)
+
+    register_user(client)
+    client.post('/habits/add', data={
+        'name': 'Read',
+        'description': '30 minutes',
+        'frequency': 'Daily'
+    })
+
+    from datetime import date, timedelta
+    future_date = (date.today() + timedelta(days=5)).strftime('%Y-%m-%d')
+    client.post('/habits/pause/1', data={'pause_until': future_date})
+    client.post('/habits/resume/1')
+
+    df = pd.read_csv(test_csv)
+    assert df.iloc[0]['status'] == 'active'
+    assert pd.isna(df.iloc[0]['pause_until'])
+
+
+def test_resume_habit_requires_login(client):
+    """Resume route should redirect to login if not authenticated."""
+    response = client.post('/habits/resume/1', follow_redirects=False)
+    assert response.status_code == 302
+    assert '/login' in response.headers['Location']
+
+
+def test_auto_resume_expired_pause(client, tmp_path, monkeypatch):
+    """Habits with expired pause_until dates should auto-resume on load."""
+    test_csv = str(tmp_path / 'habits.csv')
+    test_user = str(tmp_path / 'users.json')
+    monkeypatch.setattr('app.HABITS_FILE', test_csv)
+    monkeypatch.setattr('app.USERS_FILE', test_user)
+
+    register_user(client)
+    client.post('/habits/add', data={
+        'name': 'Yoga',
+        'description': 'Morning yoga',
+        'frequency': 'Daily'
+    })
+
+    # Manually write an expired pause_until into the CSV
+    df = pd.read_csv(test_csv, dtype={'pause_until': object})
+    df.loc[0, 'status'] = 'paused'
+    df.loc[0, 'pause_until'] = '2000-01-01'
+    df.to_csv(test_csv, index=False)
+
+    # Hitting /habits triggers load_habits which auto-resumes expired pauses
+    response = client.get('/habits', follow_redirects=True)
+    assert response.status_code == 200
+
+    df = pd.read_csv(test_csv)
+    assert df.iloc[0]['status'] == 'active'
+    assert pd.isna(df.iloc[0]['pause_until'])
