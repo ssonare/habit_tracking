@@ -375,6 +375,13 @@ def pause_habit(habit_id):
         flash('Resume date must be in the future.', 'error')
         return redirect(url_for('habits'))
 
+    habit_name = df.loc[df['id'] == habit_id, 'name'].values[0]
+    df.loc[df['id'] == habit_id, 'status'] = 'paused'
+    df.loc[df['id'] == habit_id, 'pause_until'] = pause_until
+    save_habits(df)
+    flash(f'Habit "{habit_name}" paused until {pause_until}.', 'success')
+    return redirect(url_for('habits'))
+
 
 @app.route('/habits/resume/<int:habit_id>', methods=['POST'])
 @login_required
