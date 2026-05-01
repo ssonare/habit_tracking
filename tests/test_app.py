@@ -1,10 +1,12 @@
-# Name: Samruddhi, stuti, sandhya
+# Name: Samruddhi, Stuti, Sandhya
 # Date: 04/10/2026
 # Automated tests for the Habit Tracking Flask application.
 
 import pytest
 import pandas as pd
+import app as app_module
 from app import app
+from habit_tracker import HabitTracker
 
 
 @pytest.fixture
@@ -12,7 +14,7 @@ def client(tmp_path, monkeypatch):
     """Set up a test Flask client with a temporary CSV file."""
     test_csv = str(tmp_path / 'habits.csv')
     test_user = str(tmp_path / 'users.json')
-    monkeypatch.setattr('app.HABITS_FILE', test_csv)
+    monkeypatch.setattr(app_module, 'tracker', HabitTracker(test_csv))
     monkeypatch.setattr('app.USERS_FILE', test_user)
     app.config['TESTING'] = True
     app.config['WTF_CSRF_ENABLED'] = False
@@ -210,13 +212,8 @@ def test_add_habit_missing_frequency(client):
     assert b'required' in response.data
 
 
-def test_add_habit_saves_to_csv(client, tmp_path, monkeypatch):
+def test_add_habit_saves_to_csv(client):
     """Habit data should be persisted in the CSV file."""
-    test_csv = str(tmp_path / 'habits.csv')
-    test_user = str(tmp_path / 'users.json')
-    monkeypatch.setattr('app.HABITS_FILE', test_csv)
-    monkeypatch.setattr('app.USERS_FILE', test_user)
-
     register_user(client)
     client.post('/habits/add', data={
         'name': 'Read Books',
@@ -224,6 +221,7 @@ def test_add_habit_saves_to_csv(client, tmp_path, monkeypatch):
         'frequency': 'Daily'
     })
 
+    test_csv = app_module.tracker.habits_file
     df = pd.read_csv(test_csv)
     assert len(df) == 1
     assert df.iloc[0]['name'] == 'Read Books'
@@ -259,13 +257,8 @@ def test_delete_habit_not_found(client):
     assert b'not found' in response.data
 
 
-def test_delete_habit_removes_from_csv(client, tmp_path, monkeypatch):
+def test_delete_habit_removes_from_csv(client):
     """Deleted habit should no longer exist in the CSV."""
-    test_csv = str(tmp_path / 'habits.csv')
-    test_user = str(tmp_path / 'users.json')
-    monkeypatch.setattr('app.HABITS_FILE', test_csv)
-    monkeypatch.setattr('app.USERS_FILE', test_user)
-
     register_user(client)
     client.post('/habits/add', data={
         'name': 'Journal',
@@ -275,6 +268,7 @@ def test_delete_habit_removes_from_csv(client, tmp_path, monkeypatch):
 
     client.post('/habits/delete/1')
 
+    test_csv = app_module.tracker.habits_file
     df = pd.read_csv(test_csv)
     assert len(df) == 0
 
@@ -353,13 +347,8 @@ def test_edit_habit_requires_login(client):
     assert '/login' in response.headers['Location']
 
 
-def test_edit_habit_saves_to_csv(client, tmp_path, monkeypatch):
+def test_edit_habit_saves_to_csv(client):
     """Updated habit should be persisted correctly in the CSV."""
-    test_csv = str(tmp_path / 'habits.csv')
-    test_user = str(tmp_path / 'users.json')
-    monkeypatch.setattr('app.HABITS_FILE', test_csv)
-    monkeypatch.setattr('app.USERS_FILE', test_user)
-
     register_user(client)
     client.post('/habits/add', data={
         'name': 'Exercise',
@@ -373,6 +362,7 @@ def test_edit_habit_saves_to_csv(client, tmp_path, monkeypatch):
         'frequency': 'Weekly'
     })
 
+    test_csv = app_module.tracker.habits_file
     df = pd.read_csv(test_csv)
     assert df.iloc[0]['name'] == 'Yoga'
     assert df.iloc[0]['frequency'] == 'Weekly'
@@ -449,13 +439,8 @@ def test_pause_habit_not_found(client):
     assert b'not found' in response.data
 
 
-def test_pause_habit_saves_to_csv(client, tmp_path, monkeypatch):
+def test_pause_habit_saves_to_csv(client):
     """Paused status and pause_until date should be persisted in the CSV."""
-    test_csv = str(tmp_path / 'habits.csv')
-    test_user = str(tmp_path / 'users.json')
-    monkeypatch.setattr('app.HABITS_FILE', test_csv)
-    monkeypatch.setattr('app.USERS_FILE', test_user)
-
     register_user(client)
     client.post('/habits/add', data={
         'name': 'Meditate',
@@ -467,6 +452,7 @@ def test_pause_habit_saves_to_csv(client, tmp_path, monkeypatch):
     future_date = (date.today() + timedelta(days=10)).strftime('%Y-%m-%d')
     client.post('/habits/pause/1', data={'pause_until': future_date})
 
+    test_csv = app_module.tracker.habits_file
     df = pd.read_csv(test_csv)
     assert df.iloc[0]['status'] == 'paused'
     assert df.iloc[0]['pause_until'] == future_date
@@ -509,13 +495,8 @@ def test_resume_habit_not_found(client):
     assert b'not found' in response.data
 
 
-def test_resume_habit_clears_pause_until(client, tmp_path, monkeypatch):
+def test_resume_habit_clears_pause_until(client):
     """Resuming should clear the pause_until date in the CSV."""
-    test_csv = str(tmp_path / 'habits.csv')
-    test_user = str(tmp_path / 'users.json')
-    monkeypatch.setattr('app.HABITS_FILE', test_csv)
-    monkeypatch.setattr('app.USERS_FILE', test_user)
-
     register_user(client)
     client.post('/habits/add', data={
         'name': 'Read',
@@ -528,6 +509,7 @@ def test_resume_habit_clears_pause_until(client, tmp_path, monkeypatch):
     client.post('/habits/pause/1', data={'pause_until': future_date})
     client.post('/habits/resume/1')
 
+    test_csv = app_module.tracker.habits_file
     df = pd.read_csv(test_csv)
     assert df.iloc[0]['status'] == 'active'
     assert pd.isna(df.iloc[0]['pause_until'])
@@ -540,13 +522,8 @@ def test_resume_habit_requires_login(client):
     assert '/login' in response.headers['Location']
 
 
-def test_auto_resume_expired_pause(client, tmp_path, monkeypatch):
+def test_auto_resume_expired_pause(client):
     """Habits with expired pause_until dates should auto-resume on load."""
-    test_csv = str(tmp_path / 'habits.csv')
-    test_user = str(tmp_path / 'users.json')
-    monkeypatch.setattr('app.HABITS_FILE', test_csv)
-    monkeypatch.setattr('app.USERS_FILE', test_user)
-
     register_user(client)
     client.post('/habits/add', data={
         'name': 'Yoga',
@@ -555,12 +532,13 @@ def test_auto_resume_expired_pause(client, tmp_path, monkeypatch):
     })
 
     # Manually write an expired pause_until into the CSV
+    test_csv = app_module.tracker.habits_file
     df = pd.read_csv(test_csv, dtype={'pause_until': object})
     df.loc[0, 'status'] = 'paused'
     df.loc[0, 'pause_until'] = '2000-01-01'
     df.to_csv(test_csv, index=False)
 
-    # Hitting /habits triggers load_habits which auto-resumes expired pauses
+    # Hitting /habits triggers load() which auto-resumes expired pauses
     response = client.get('/habits', follow_redirects=True)
     assert response.status_code == 200
 
