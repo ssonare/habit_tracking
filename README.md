@@ -149,10 +149,3 @@ The pipeline will run automatically — no manual steps needed.
 
 ---
 
-## Planned Features (Coming in Future Assignments)
-
-- edit habits
-- Daily check-off and progress tracking
-- Categories: Health, Fitness, Learning, Wellness
-- Streaks and statistics dashboard
-- Database integration with pandas analytics
