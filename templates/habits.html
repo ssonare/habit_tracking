@@ -23,6 +23,7 @@
                     <th>Habit Name</th>
                     <th>Description</th>
                     <th>Frequency</th>
+                    <th>Status</th>
                     <th>Date Added</th>
                     <th>Actions</th>
                 </tr>
@@ -34,9 +35,38 @@
                     <td>{{ habit.name }}</td>
                     <td>{{ habit.description if habit.description else '—' }}</td>
                     <td><span class="badge">{{ habit.frequency }}</span></td>
-                    <td>{{ habit.date_added }}</td>
                     <td>
+                        {% if habit.status == 'paused' %}
+                            <span class="status-badge status-paused">Paused</span>
+                            {% if habit.pause_until and habit.pause_until == habit.pause_until %}
+                                <div class="pause-until-lable">until {{habit.pause_until}}</div>
+                            {% endif %}
+                        {% else %}
+                            <span class="status-badge status-active">● Active</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ habit.date_added }}</td>
+                    <td class="action-cell">
+                        <a href="{{ url_for('edit_habit', habit_id=habit.id) }}"
+                           class="btn btn-secondary">Edit</a>
+                        {% if habit.status == 'paused' %}
+                        <form action="{{ url_for('resume_habit', habit_id=habit.id) }}" method="POST"
+                                  style="display:inline;">
+                                <button type="submit" class="btn-resume">▶ Resume</button>
+                            </form>
+                        {% else %}
+                            <button type="button" class="btn-pause"
+                                    onclick="openPauseModal({{ habit.id }}, '{{ habit.name }}')">
+                                ⏸ Pause
+                            </button>
+                        {% endif %}
+
+                        <form action="{{ url_for('archive_habit', habit_id=habit.id) }}" method="POST"
+                              style="display:inline;">
+                            <button type="submit" class="btn-archive">Archive</button>
+                        </form>
                         <form action="{{ url_for('delete_habit', habit_id=habit.id) }}" method="POST"
+                              style="display:inline;"
                               onsubmit="return confirm('Delete this habit?');">
                             <button type="submit" class="btn btn-danger">Delete</button>
                         </form>
@@ -51,4 +81,46 @@
         </div>
     {% endif %}
 </div>
+
+<!-- Pause Modal -->
+<div id="pauseModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+        <h2 class="modal-title">Pause Habit</h2>
+        <p class="modal-subtitle">Pausing: <strong id="pauseHabitName"></strong></p>
+        <p class="modal-desc">Your streak will freeze during the pause period and resume automatically on the date you choose.</p>
+        <form id="pauseForm" method="POST">
+            <div class="form-group">
+                <label for="pause_until">Resume on <span class="required">*</span></label>
+                <input type="date" id="pause_until" name="pause_until" required>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Confirm Pause</button>
+                <button type="button" class="btn btn-secondary" onclick="closePauseModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Set minimum date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('pause_until').min = tomorrow.toISOString().split('T')[0];
+
+    function openPauseModal(habitId, habitName) {
+        document.getElementById('pauseHabitName').textContent = habitName;
+        document.getElementById('pauseForm').action = '/habits/pause/' + habitId;
+        document.getElementById('pauseModal').style.display = 'flex';
+    }
+
+    function closePauseModal() {
+        document.getElementById('pauseModal').style.display = 'none';
+        document.getElementById('pause_until').value = '';
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('pauseModal').addEventListener('click', function(e) {
+        if (e.target === this) closePauseModal();
+    });
+</script>
 {% endblock %}

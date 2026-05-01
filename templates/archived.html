@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1>Archived Habits</h1>
+        <a href="{{ url_for('habits') }}" class="btn-primary">&#8592; Back to Active Habits</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if habits %}
+        <table class="habits-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Habit Name</th>
+                    <th>Description</th>
+                    <th>Frequency</th>
+                    <th>Date Added</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for habit in habits %}
+                <tr>
+                    <td>{{ habit.id }}</td>
+                    <td>{{ habit.name }}</td>
+                    <td>{{ habit.description if habit.description else '—' }}</td>
+                    <td><span class="badge">{{ habit.frequency }}</span></td>
+                    <td>{{ habit.date_added }}</td>
+                    <td class="action-cell">
+                        <form action="{{ url_for('unarchive_habit', habit_id=habit.id) }}" method="POST"
+                              style="display:inline;">
+                            <button type="submit" class="btn-restore">Restore</button>
+                        </form>
+                        <form action="{{ url_for('delete_habit', habit_id=habit.id) }}" method="POST"
+                              style="display:inline;"
+                              onsubmit="return confirm('Permanently delete this habit?');">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty-state">
+            <p>No archived habits. Archive a habit from <a href="{{ url_for('habits') }}">My Habits</a> to see it here.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-container">
     <div class="page-header">
-        <h1>Add New Habit</h1>
+        <h1>Edit Habit</h1>
         <a href="{{ url_for('habits') }}" class="btn btn-secondary">Back to Habits</a>
     </div>
 
@@ -15,45 +15,43 @@
         {% endif %}
     {% endwith %}
 
-    <div class="form-card">
-        <form method="POST" action="{{ url_for('add_habit') }}">
-
+    <div class="form-container">
+        <form method="POST" action="{{ url_for('edit_habit', habit_id=habit.id) }}">
             <div class="form-group">
                 <label for="name">Habit Name <span class="required">*</span></label>
-                <input type="text" id="name" name="name" placeholder="e.g. Drink Water"
-                       required maxlength="100">
+                <input type="text" id="name" name="name"
+                       value="{{ habit.name }}" required>
             </div>
 
             <div class="form-group">
                 <label for="description">Description</label>
-                <input type="text" id="description" name="description"
-                       placeholder="e.g. Drink 8 glasses a day" maxlength="200">
+                <textarea id="description" name="description"
+                          rows="3">{{ habit.description if habit.description else '' }}</textarea>
             </div>
 
             <div class="form-group">
                 <label for="frequency">Frequency <span class="required">*</span></label>
                 <select id="frequency" name="frequency" required>
-                    <option value="" disabled selected>Select frequency</option>
-                    <option value="Daily">Daily</option>
-                    <option value="Weekly">Weekly</option>
+                    <option value="Daily"
+                        {% if habit.frequency == 'Daily' %}selected{% endif %}>Daily</option>
+                    <option value="Weekly"
+                        {% if habit.frequency == 'Weekly' %}selected{% endif %}>Weekly</option>
                 </select>
             </div>
 
             <div class="form-group">
                 <label for="category">Category</label>
                 <select id="category" name="category">
-                    <option value="Fitness">Fitness</option>
-                    <option value="Health">Health</option>
-                    <option value="Finance">Finance</option>
-                    <option value="Chores">Chores</option>
-                    <option value="Learning">Learning</option>
-                    <option value="Social">Social</option>
-                    <option value="Other">Other</option>
-                    <option value="Uncategorized">Uncategorized</option>
+                    {% for cat in ['Fitness', 'Health', 'Finance', 'Chores', 'Learning', 'Social', 'Other', 'Uncategorized'] %}
+                    <option value="{{ cat }}" {% if habit.category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
                 </select>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-full">Add Habit</button>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Update Habit</button>
+                <a href="{{ url_for('habits') }}" class="btn btn-secondary">Cancel</a>
+            </div>
         </form>
     </div>
 </div>

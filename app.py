@@ -62,7 +62,8 @@ def get_user_by_email(email):
     users = load_users()
     for uid, data in users.items():
         if data['email'].lower() == email.lower():
-            return User(uid, data['username'], data['email'], data['password_hash'])
+            return User(uid, data['username'], data['email'],
+                        data['password_hash'])
     return None
 
 
@@ -70,7 +71,8 @@ def get_user_by_id(user_id):
     users = load_users()
     data = users.get(str(user_id))
     if data:
-        return User(str(user_id), data['username'], data['email'], data['password_hash'])
+        return User(str(user_id), data['username'], data['email'],
+                    data['password_hash'])
     return None
 
 
@@ -87,9 +89,32 @@ def load_user(user_id):
 def load_habits():
     """Read habits from CSV. Returns empty DataFrame if file doesn't exist."""
     if os.path.exists(HABITS_FILE):
-        return pd.read_csv(HABITS_FILE)
+        df = pd.read_csv(HABITS_FILE)
+        if 'archived' not in df.columns:
+            df['archived'] = 0
+        if 'category' not in df.columns:
+            df['category'] = 'Uncategorized'
+        if 'status' not in df.columns:
+            df['status'] = 'active'
+        if 'pause_until' not in df.columns:
+            df['pause_until'] = None
+        df['pause_until'] = df['pause_until'].astype(object)
+
+        today = date.today().strftime('%Y-%m-%d')
+        expired_mask = (
+            (df['status'] == 'paused') &
+            (df['pause_until'].notna()) &
+            (df['pause_until'].astype(str) < today)
+        )
+        if expired_mask.any():
+            df.loc[expired_mask, 'status'] = 'active'
+            df.loc[expired_mask, 'pause_until'] = None
+            save_habits(df)
+
+        return df
     return pd.DataFrame(
-        columns=['id', 'name', 'description', 'frequency', 'date_added']
+        columns=['id', 'name', 'description', 'frequency', 'date_added',
+                 'archived', 'category', 'status', 'pause_until']
     )
 
 
@@ -138,9 +163,13 @@ def register():
         }
         save_users(users)
 
-        new_user = User(new_id, username, email, users[new_id]['password_hash'])
+        new_user = User(
+            new_id, username, email, users[new_id]['password_hash']
+        )
         login_user(new_user)
-        flash(f'Welcome, {username}! Your account has been created.', 'success')
+        flash(
+            f'Welcome, {username}! Your account has been created.', 'success'
+        )
         return redirect(url_for('habits'))
 
     return render_template('register.html')
@@ -178,10 +207,57 @@ def logout():
 @app.route('/habits')
 @login_required
 def habits():
-    """Display all habits."""
+    """Display active (non-archived) habits."""
     df = load_habits()
-    habits_list = df.to_dict(orient='records')
+    active = df[df['archived'] != 1]
+    habits_list = active.to_dict(orient='records')
     return render_template('habits.html', habits=habits_list)
+
+
+@app.route('/habits/archived')
+@login_required
+def archived_habits():
+    """Display archived habits."""
+    df = load_habits()
+    archived = df[df['archived'] == 1]
+    habits_list = archived.to_dict(orient='records')
+    return render_template('archived.html', habits=habits_list)
+
+
+@app.route('/habits/archive/<int:habit_id>', methods=['POST'])
+@login_required
+def archive_habit(habit_id):
+    """Archive a habit by ID."""
+    df = load_habits()
+
+    if habit_id not in df['id'].values:
+        flash('Habit not found.', 'error')
+        return redirect(url_for('habits'))
+
+    habit_name = df.loc[df['id'] == habit_id, 'name'].values[0]
+    df.loc[df['id'] == habit_id, 'archived'] = 1
+    save_habits(df)
+
+    flash(f'Habit "{habit_name}" archived successfully!', 'success')
+    return redirect(url_for('habits'))
+
+
+@app.route('/habits/unarchive/<int:habit_id>', methods=['POST'])
+@login_required
+def unarchive_habit(habit_id):
+    """Restore an archived habit."""
+    df = load_habits()
+
+    if habit_id not in df['id'].values:
+        flash('Habit not found.', 'error')
+        return redirect(url_for('archived_habits'))
+
+    habit_name = df.loc[df['id'] == habit_id, 'name'].values[0]
+    df.loc[df['id'] == habit_id, 'archived'] = 0
+    save_habits(df)
+
+    flash(f'Habit "{habit_name}" restored to active habits!', 'success')
+    return redirect(url_for('archived_habits'))
 
 
 @app.route('/habits/add', methods=['GET', 'POST'])
@@ -192,6 +268,7 @@ def add_habit():
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         frequency = request.form.get('frequency', '').strip()
+        category = request.form.get('category', 'Uncategorized').strip()
 
         # Basic validation
         if not name or not frequency:
@@ -208,7 +285,9 @@ def add_habit():
             'name': name,
             'description': description,
             'frequency': frequency,
-            'date_added': date.today().strftime('%Y-%m-%d')
+            'date_added': date.today().strftime('%Y-%m-%d'),
+            'category': category if category else 'Uncategorized',
+            'status': 'active'
         }
 
         # Append the new habit and persist
@@ -237,6 +316,182 @@ def delete_habit(habit_id):
 
     flash(f'Habit "{habit_name}" deleted successfully!', 'success')
     return redirect(url_for('habits'))
+
+
+@app.route('/habits/edit/<int:habit_id>', methods=['GET', 'POST'])
+@login_required
+def edit_habit(habit_id):
+    """Show edit form (GET) and handle form submission (POST)."""
+    df = load_habits()
+
+    if habit_id not in df['id'].values:
+        flash('Habit not found.', 'error')
+        return redirect(url_for('habits'))
+
+    habit = df.loc[df['id'] == habit_id].iloc[0].to_dict()
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+        frequency = request.form.get('frequency', '').strip()
+        category = request.form.get('category', 'Uncategorized').strip()
+
+        if not name or not frequency:
+            flash('Habit name and frequency are required.', 'error')
+            return redirect(url_for('edit_habit', habit_id=habit_id))
+
+        df.loc[df['id'] == habit_id, 'name'] = name
+        df.loc[df['id'] == habit_id, 'description'] = description
+        df.loc[df['id'] == habit_id, 'frequency'] = frequency
+        df.loc[df['id'] == habit_id, 'category'] = (
+            category if category else 'Uncategorized'
+        )
+        save_habits(df)
+
+        flash(f'Habit "{name}" updated successfully!', 'success')
+        return redirect(url_for('habits'))
+
+    return render_template('edit_habit.html', habit=habit)
+
+
+@app.route('/habits/pause/<int:habit_id>', methods=['POST'])
+@login_required
+def pause_habit(habit_id):
+    """Pause a habit until a user-defined date."""
+    df = load_habits()
+
+    if habit_id not in df['id'].values:
+        flash('Habit not found.', 'error')
+        return redirect(url_for('habits'))
+
+    pause_until = request.form.get('pause_until', '').strip()
+
+    if not pause_until:
+        flash('Please select resume date.', 'error')
+        return redirect(url_for('habits'))
+
+    today = date.today().strftime('%Y-%m-%d')
+    if pause_until <= today:
+        flash('Resume date must be in the future.', 'error')
+        return redirect(url_for('habits'))
+
+    habit_name = df.loc[df['id'] == habit_id, 'name'].values[0]
+    df.loc[df['id'] == habit_id, 'status'] = 'paused'
+    df.loc[df['id'] == habit_id, 'pause_until'] = pause_until
+    save_habits(df)
+    flash(f'Habit "{habit_name}" paused until {pause_until}.', 'success')
+    return redirect(url_for('habits'))
+
+
+@app.route('/habits/resume/<int:habit_id>', methods=['POST'])
+@login_required
+def resume_habit(habit_id):
+    """Manually resume a paused habit before its pause_until date."""
+    df = load_habits()
+
+    if habit_id not in df['id'].values:
+        flash('Habit not found.', 'error')
+        return redirect(url_for('habits'))
+
+    habit_name = df.loc[df['id'] == habit_id, 'name'].values[0]
+    df.loc[df['id'] == habit_id, 'status'] = 'active'
+    df.loc[df['id'] == habit_id, 'pause_until'] = None
+    save_habits(df)
+
+    flash(f'Habit "{habit_name}" resumed successfully!', 'success')
+    return redirect(url_for('habits'))
+
+
+@app.route('/habits/stats')
+@login_required
+def habit_stats():
+    """Display habit statistics dashboard."""
+    df = load_habits()
+
+    if df.empty:
+        stats = {
+            'total': 0, 'active': 0, 'completed': 0, 'paused': 0,
+            'archived': 0, 'categories': [], 'most_recent': None,
+            'oldest': None, 'journey_days': 0, 'active_rate': 0,
+            'completed_rate': 0, 'paused_rate': 0, 'total_categories': 0
+        }
+        return render_template('stats.html', stats=stats)
+
+    total = len(df)
+    archived_count = int((df['archived'] == 1).sum())
+    active_count = int(
+        ((df['archived'] != 1) & (df['status'] == 'active')).sum()
+    )
+    completed_count = int((df['status'] == 'completed').sum())
+    paused_count = int((df['status'] == 'paused').sum())
+
+    non_archived = df[df['archived'] != 1].copy()
+    if not non_archived.empty:
+        cat_counts = (
+            non_archived.groupby('category').size().reset_index(name='count')
+        )
+        max_count = int(cat_counts['count'].max())
+        categories = [
+            {
+                'name': row['category'],
+                'count': int(row['count']),
+                'pct': round(row['count'] / max_count * 100)
+            }
+            for _, row in cat_counts.iterrows()
+        ]
+    else:
+        categories = []
+
+    most_recent = None
+    oldest = None
+    journey_days = 0
+    try:
+        df['date_added'] = pd.to_datetime(df['date_added'])
+        most_recent_row = df.loc[df['date_added'].idxmax()]
+        oldest_row = df.loc[df['date_added'].idxmin()]
+        journey_days = int(
+            (most_recent_row['date_added'] - oldest_row['date_added']).days
+        )
+        most_recent = {
+            'name': most_recent_row['name'],
+            'category': most_recent_row.get('category', 'Uncategorized'),
+            'date': most_recent_row['date_added'].strftime('%B %d, %Y')
+        }
+        oldest = {
+            'name': oldest_row['name'],
+            'category': oldest_row.get('category', 'Uncategorized'),
+            'date': oldest_row['date_added'].strftime('%B %d, %Y')
+        }
+    except Exception:
+        pass
+
+    total_categories = (
+        int(df['category'].nunique()) if 'category' in df.columns else 0
+    )
+
+    stats = {
+        'total': total,
+        'active': active_count,
+        'completed': completed_count,
+        'paused': paused_count,
+        'archived': archived_count,
+        'categories': categories,
+        'most_recent': most_recent,
+        'oldest': oldest,
+        'journey_days': journey_days,
+        'active_rate': (
+            round(active_count / total * 100, 1) if total > 0 else 0
+        ),
+        'completed_rate': (
+            round(completed_count / total * 100, 1) if total > 0 else 0
+        ),
+        'paused_rate': (
+            round(paused_count / total * 100, 1) if total > 0 else 0
+        ),
+        'total_categories': total_categories
+    }
+
+    return render_template('stats.html', stats=stats)
 
 
 if __name__ == '__main__':
