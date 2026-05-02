@@ -2,5 +2,6 @@ flask
 flask-login
 pandas
 pytest
+pytest-mock
 flake8
 werkzeug
