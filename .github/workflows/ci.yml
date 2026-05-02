@@ -23,7 +23,7 @@ jobs:
         run: pip install flake8
 
       - name: Run flake8
-        run: flake8 app.py tests/ --max-line-length=100
+        run: flake8 app.py habit.py habit_tracker.py tests/ --max-line-length=100
 
   test:
     name: Test (pytest)
